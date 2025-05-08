@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text RPG Adventure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- World Selection Screen -->
+    <div id="world-selection-container">
+        <h2>Bir Dünya Seç</h2>
+        <div id="world-cards-container">
+            <div class="world-card" data-world-id="dark_fantasy" data-world-name="Karanlık Fantezi Dünyası">
+                <img src="images/dark_fantasy.jpg" alt="Karanlık Fantezi Dünyası">
+                <div class="world-name-overlay">Karanlık Fantezi Dünyası</div>
+            </div>
+            <div class="world-card" data-world-id="animal_kingdom" data-world-name="Hayvanların Hüküm Sürdüğü Dünya">
+                <img src="images/animal_kingdom.jpg" alt="Hayvanların Hüküm Sürdüğü Dünya">
+                <div class="world-name-overlay">Hayvanların Hüküm Sürdüğü Dünya</div>
+            </div>
+            <!-- Add more world cards here as needed -->
+        </div>
+    </div>
+
+    <!-- Race Info Screen (Animal Kingdom - Initially Hidden) -->
+    <div id="race-info-container" style="display: none;">
+        <!-- <h2>Irklar</h2> -->
+        <div class="race-info-card" id="race-vargar" data-race-id="vargar">
+            <div class="race-card-bg"></div> <!-- For background image -->
+            <div class="race-card-content">
+                <h2>Vargar</h2>
+                <div class="race-details">
+                    <h3>Vargar (Kurt Irkı)</h3>
+                    <p>Demir Dişler klanları, "Ayın Kanunu" altında birleşen savaşçı bir topluluktur. Gece avlarında liderlik eder, sürü ruhunu kutsal sayarlar. Ancak genç lider Tharok, klanları "Büyük Sürü" adı altında birleştirmeye çalışırken gelenekselcilerle çatışıyor. Topraklarını korumak için ölümüne savaşırlar, ancak zayıfları sürüden dışlama eğilimindeler.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Vulpex:</strong> "Hile ve tuzaklarla savaşanlar onursuzdur!" Mekanik icatlarını "gerçek savaşçı ruhuna hakaret" olarak görürler. Son savaşta Vulpex'in buhar tuzakları bir Vargar klanını yok etti.<br>
+                       <strong>Noctis:</strong> Ayın kehanetlerine saygı duyarlar, ancak "Kanla Yazılmış Barış" kehanetini reddederler.<br>
+                       <strong>Leporim:</strong> "Zayıf ama kullanışlı." Tarlalarından yiyecek alır, karşılığında koruma sağlarlar.</p>
+                </div>
+            </div>
+        </div>
+        <div class="race-info-card" id="race-vulpex" data-race-id="vulpex">
+             <div class="race-card-bg"></div>
+             <div class="race-card-content">
+                <h2>Vulpex</h2>
+                <div class="race-details">
+                    <h3>Vulpex (Tilki Irkı)</h3>
+                    <p>Kıvılcım Loncası, teknoloji ve hile ustası bir gizli örgüttür. Mekanik tuzaklar, patlayıcılar ve "Ateş-Topu" gibi icatlarla güçlerini artırırlar. "Zekâ, kaslardan üstündür" mottosuyla hareket ederler. Son icatları olan *Buhar Kapanı*, Vargar klanlarına karşı kullanılmak üzere geliştiriliyor.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Vargar:</strong> "Kaslarıyla gurur duyan aptallar." Doğrudan savaş taktiklerini küçümser, ancak fiziksel güçlerinden korkarlar.<br>
+                       <strong>Noctis:</strong> "Kehanetleri manipüle edip kendi lehime çevirebilirim." Bir rahibeyi kandırıp yıldız haritasını çalmaya çalıştılar.<br>
+                       <strong>Leporim:</strong> "Şifalı bitkileri çalması kolay." Tarlalarına gizlice girip nadir otlarını çalarlar.</p>
+                </div>
+            </div>
+        </div>
+        <div class="race-info-card" id="race-noctis" data-race-id="noctis">
+             <div class="race-card-bg"></div>
+             <div class="race-card-content">
+                <h2>Noctis</h2>
+                <div class="race-details">
+                    <h3>Noctis (Baykuş Irkı)</h3>
+                    <p>Gece Bilgeleri, yıldızların dilini çözen ve "Uçan Kule Tapınakları"nda yaşayan mistik bir ırktır. Kehanetleri diğer ırklar tarafından kutsal kabul edilir, ancak son kehanetleri (*"Kanla Yazılmış Barış"*) herkes tarafından yanlış yorumlandı. Bazı rahipler, bu kehanetin aslında bir *savaş uyarısı* olduğunu düşünüyor.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Vargar:</strong> "Ayın çocukları, ama körler." Savaşçılıklarına saygı duyarlar, ancak vizyon eksikliğini eleştirirler.<br>
+                       <strong>Vulpex:</strong> "Zekâları tehlikeli, ama kontrol edilebilir." Bir üyesini kehanetleri çalmaya çalışırken yakalayıp cezalandırdılar.<br>
+                       <strong>Leporim:</strong> "Toprakla bağları, kadim dengenin anahtarı." Şifacılarıyla iş birliği yaparlar.</p>
+                </div>
+            </div>
+        </div>
+        <div class="race-info-card" id="race-leporim" data-race-id="leporim">
+             <div class="race-card-bg"></div>
+             <div class="race-card-content">
+                <h2>Leporim</h2>
+                <div class="race-details">
+                    <h3>Leporim (Tavşan Irkı)</h3>
+                    <p>Yeşil Tarlalar Birliği, tarım ve diplomasiyle ayakta kalan barışçıl bir halktır. "Köklerimiz Toprakla, Kulaklarımız Rüzgarla" sloganıyla hareket ederler. Ancak son kuraklık ve toprak ilaçlarının çalınması, birliği dağılma noktasına getirdi. Bazı genç Leporim'ler, silahlanıp savaşmayı öğrenmek istiyor.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Vargar:</strong> "Bizi koruyorlar, ama küçümsüyorlar." Liderine yiyecek rüşvet vererek saldırıları önlerler.<br>
+                       <strong>Vulpex:</strong> "Bitkilerimizi çalıp kaçıyorlar!" Tuzak kurmak için Noctis'ten yardım istediler.<br>
+                       <strong>Noctis:</strong> "Kehanetlerinde bize danışıyorlar." Şifacıları, Noctis rahiplerine bitkisel ilaçlar sağlar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faction Info Screen (Dark Fantasy - Initially Hidden) -->
+    <div id="dark-fantasy-info-container" style="display: none;">
+        <div class="faction-info-card" id="faction-ashen" data-faction-id="ashen_legion">
+            <div class="faction-card-bg"></div>
+            <div class="faction-card-content">
+                <h2>Ashen Legion</h2>
+                <div class="faction-details">
+                    <h3>Kül Lejyonu</h3>
+                    <p>Bir zamanların şanlı krallığının küllerinden doğan Kül Lejyonu, ölümsüz bir lanetle zincirlenmiş sadık savaşçılardır. Ne canlı ne de ölü, kayıp krallıklarının onurunu geri getirmek ya da sonsuz görevlerinden kurtulmak için savaşırlar. Paslı zırhları ve boş gözleriyle, unutulmuş bir çağın yankılarıdırlar.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Gölge Sendikası:</strong> Güvensizlik. Fırsatçı leşçiller.<br>
+                       <strong>Kadim Kült:</strong> Düşmanlık. Krallığı yıkan kaosun temsilcileri.</p>
+                </div>
+            </div>
+        </div>
+        <div class="faction-info-card" id="faction-shadow" data-faction-id="shadow_syndicate">
+            <div class="faction-card-bg"></div>
+            <div class="faction-card-content">
+                <h2>Shadow Syndicate</h2>
+                <div class="faction-details">
+                    <h3>Gölge Sendikası</h3>
+                    <p>Yıkık şehirlerin ve karanlık sokakların efendileri Gölge Sendikası, hayatta kalmanın her şey demek olduğu bir dünyada gizlilik ve kurnazlıkla var olur. Zehirler, fısıltılar ve gölgeler onların silahıdır. Onlar için bilgi güç, sadakat ise sadece bir araçtır.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Kül Lejyonu:</strong> Dikkatli sömürü. Tahmin edilebilir engeller/antik eser kaynakları.<br>
+                       <strong>Kadim Kült:</strong> Tedbirli kaçınma/ara sıra ticaret. Güçlerinden korkarlar.</p>
+                </div>
+            </div>
+        </div>
+        <div class="faction-info-card" id="faction-cult" data-faction-id="primordial_cult">
+            <div class="faction-card-bg"></div>
+            <div class="faction-card-content">
+                <h2>Primordial Cult</h2>
+                <div class="faction-details">
+                    <h3>Kadim Kült</h3>
+                    <p>Dünyanın çatlaklarından sızan Kadim Kült, unutulmuş ve korkunç varlıkların fısıltılarına kulak verir. Kaosu kucaklar, gerçekliği bükerek efendilerini uyandırmayı ya da onların akıl almaz güçlerinden pay almayı umarlar. Kurbanlar ve mutasyonlar onların ayinleridir.</p>
+                    <h4>İlişkiler:</h4>
+                    <p><strong>Kül Lejyonu:</strong> Aşağılama/Hedef. Başarısız düzenin kalıntıları.<br>
+                       <strong>Gölge Sendikası:</strong> Kullanışlı piyonlar/Sıkıntılar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen Wrapper (Initially Hidden) -->
+    <div id="game-screen-wrapper" style="display: none;">
+        <!-- Character Info Card (Moved Here) -->
+         <div id="character-info-card" style="display: none;"> 
+             <h4>Karakter</h4>
+             <p><strong>İsim:</strong> <span id="char-name">...</span></p>
+             <p><strong>Sınıf:</strong> <span id="char-class">...</span></p>
+             <p><strong>Can:</strong> <span id="char-health">...</span></p>
+             <ul id="char-stats">
+                 <!-- Stats will be populated by JS -->
+             </ul>
+        </div>
+
+        <!-- Game Container (Chat Area) -->
+        <div class="container"> <!-- Removed style="display: none;" -->
+            <header>
+                <h1 id="world-title">Dünya Yükleniyor...</h1>
+            </header>
+            <main>
+                <!-- Character Info Card Removed From Here -->
+                <div id="chat-log-container">
+                    <div id="chat-log">
+                        <!-- Chat messages will appear here -->
+                    </div>
+                </div>
+                <div id="choices-container">
+                    <!-- Seçenekler buraya JavaScript ile eklenecek -->
+                </div>
+                <div id="player-input-container">
+                    <input type="text" id="player-command" placeholder="Ne yapmak istersin?">
+                    <button id="send-command">Gönder</button>
+                </div>
+            </main>
+            <footer>
+                <p>&copy; 2025 Metin Tabanlı RPG</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p id="modal-message">Seçimi onaylıyor musunuz?</p>
+            <div class="modal-buttons">
+                <button id="modal-confirm-button">Evet</button>
+                <button id="modal-cancel-button">Hayır</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
