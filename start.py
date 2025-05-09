@@ -46,15 +46,16 @@ def start_backend_server():
     command = [
         sys.executable,
         "-m", "uvicorn",
-        "main:app", # Relative to BACKEND_DIR
+        "backend.main:app", # Changed to package path relative to ROOT_DIR
         "--host", HOST,
         "--port", str(PORT)
         # "--reload" # --reload can sometimes make it harder to manage the subprocess
     ]
     
-    # We need to run uvicorn from within the backend directory for it to find main:app
+    # Run uvicorn from the project root directory (ROOT_DIR)
+    # so it can correctly interpret "backend.main:app"
     try:
-        server_process = subprocess.Popen(command, cwd=BACKEND_DIR)
+        server_process = subprocess.Popen(command, cwd=ROOT_DIR) # Changed cwd to ROOT_DIR
         print(f"Sunucu PID: {server_process.pid} üzerinde başlatıldı.")
         # Give the server a moment to start
         time.sleep(5) # Wait 5 seconds for the server to initialize

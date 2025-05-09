@@ -1,42 +1,7 @@
-# --- World Lore Summaries ---
-world_lore_summaries = {
-    "dark_fantasy": "Bu dünya, yıkılmış krallıkların, lanetli varlıkların ve gölgelerde gizlenen tehlikelerin hüküm sürdüğü karanlık bir fantezi diyarıdır. Hayatta kalmak zordur ve güven nadir bulunur. Kül Lejyonu (ölümsüz savaşçılar), Gölge Sendikası (kurnaz casuslar) ve Kadim Kült (kaotik varlıklara tapanlar) ana güçlerdir.",
-    "animal_kingdom": "Bu dünya, bilinç kazanmış hayvan ırklarının yaşadığı, doğa ile iç içe bir krallıktır. Vargar (kurtlar), Vulpex (tilkiler), Noctis (baykuşlar) ve Leporim (tavşanlar) gibi ırklar kendi toplumlarını kurmuşlardır. Politika, kurnazlık ve hayatta kalma mücadelesi ön plandadır. Büyük Meşe Konseyi önemli bir toplanma yeridir."
-}
-
-# --- Initial Scenarios (Generic - Now Deprecated for specific starts) ---
-initial_scenario_dark_fantasy = {
-    "world_name_display": "Karanlık Fantezi Dünyası",
-    "world_id": "dark_fantasy",
-    "text": "Kara sislerin sardığı lanetli krallıkta, çatlamış bir yol ayrımındasın. Solunda, kemiklerle dolu bir çukur; sağında, kırık zincirlerinden sıyrılmış bir 'Yarı-Ölü' seni işaret parmağıyla çağırıyor. Arkanda ise homurdanan bir Canavarlar sürüsü yaklaşıyor. Ne yaparsın?",
-    "choices": [
-        {"id": "A", "text": "Yarı-Ölü'nün peşinden git."},
-        {"id": "B", "text": "Kemik çukuruna atla."},
-        {"id": "C", "text": "Canavarlarla savaşmayı göze al."}
-    ],
-    "current_location_id": "df_crossroads_01"
-}
-
-initial_scenario_animal_kingdom = {
-    "world_name_display": "Hayvanların Hüküm Sürdüğü Dünya",
-    "world_id": "animal_kingdom",
-    "text": "Güneşin altın ışıklarıyla yıkanan devasa bir ağacın kovuğunda gözlerini açıyorsun. Etrafın, konuşan sincapların ve şarkı söyleyen kuşların neşeli sesleriyle dolu. Aşağıda, farklı hayvan klanlarının temsilcilerinin toplandığı bir meclis alanı görünüyor. Anlaşılan o ki, 'Büyük Meşe Konseyi' başlamak üzere. Ne yaparsın?",
-    "choices": [
-        {"id": "A", "text": "Konsey alanına doğru dikkatlice in."},
-        {"id": "B", "text": "Etraftaki diğer hayvanlarla konuşarak bilgi topla."},
-        {"id": "C", "text": "Ağacın daha yükseklerine tırmanarak etrafı gözlemle."}
-    ],
-    "current_location_id": "ak_great_oak_01"
-}
-
-# Dictionary to hold all initial scenarios (used as fallback or if no race/faction selected)
-initial_scenarios_by_world = {
-    "dark_fantasy": initial_scenario_dark_fantasy,
-    "animal_kingdom": initial_scenario_animal_kingdom
-}
+# -*- coding: utf-8 -*-
 
 # --- Race/Faction Specific Starting Scenarios ---
-starting_scenarios = {
+STARTING_SCENARIOS = {
     "animal_kingdom": {
         "vargar": {
             "text": "Sürünün av borusu yankılanıyor. Lideriniz Tharok, bu geceki avın hedefinin yakındaki Leporim tarlalarına sızan gizemli bir yaratık olduğunu söylüyor. Ay ışığı altında keskinleşen duyularınla ormanın kenarında bekliyorsun. Ne yaparsın?",
@@ -106,38 +71,43 @@ starting_scenarios = {
     }
 }
 
-
-# --- Player Character Template ---
-player_character_template = {
-    "name": "Oyuncu",
-    "class": None, # Seçilen ırk/fraksiyon adı buraya gelecek
-    "world_id": None, 
-    "world_name_display": None, 
-    "stats": {
-        "STR": 5, "END": 5, "WILL": 5, "ARC": 5, # Generic defaults
-        # Animal Kingdom specific stats could be: AGI, INS, CUN, CHA
-    },
-    "inventory": [],
-    "skills": [],
-    "health": 100, 
-    "current_location_id": None, # Başlangıç senaryosundan alınacak
-    "history": [] 
-}
-
-# --- Class/Faction Base Stats ---
-# Note: Keys here MUST match the race/faction IDs used in starting_scenarios and data attributes in HTML
-class_base_stats = {
+# --- Generic Initial Scenarios (Fallback) ---
+# These are used if no specific class/faction is selected during game start
+INITIAL_SCENARIOS_BY_WORLD = {
     "dark_fantasy": {
-        "ashen_legion": {"STR": 8, "END": 7, "WILL": 6, "ARC": 2, "skills": ["Ölümsüz Saldırı"]},
-        "shadow_syndicate": {"STR": 4, "END": 5, "WILL": 5, "ARC": 7, "skills": ["Gizli Hançer"]}, # Assuming ARC relates to cunning/forbidden knowledge
-        "primordial_cult": {"STR": 5, "END": 6, "WILL": 8, "ARC": 4, "skills": ["Kaos Büyüsü"]} # Assuming WILL relates to resisting madness/channeling power
+        "world_name_display": "Karanlık Fantezi Dünyası",
+        "world_id": "dark_fantasy",
+        "text": "Kara sislerin sardığı lanetli krallıkta, çatlamış bir yol ayrımındasın. Solunda, kemiklerle dolu bir çukur; sağında, kırık zincirlerinden sıyrılmış bir 'Yarı-Ölü' seni işaret parmağıyla çağırıyor. Arkanda ise homurdanan bir Canavarlar sürüsü yaklaşıyor. Ne yaparsın?",
+        "choices": [
+            {"id": "A", "text": "Yarı-Ölü'nün peşinden git."},
+            {"id": "B", "text": "Kemik çukuruna atla."},
+            {"id": "C", "text": "Canavarlarla savaşmayı göze al."}
+        ],
+        "current_location_id": "df_crossroads_01"
     },
     "animal_kingdom": {
-        # Using race IDs from HTML data attributes
-        "vargar": {"STR": 7, "END": 6, "INS": 5, "AGI": 6, "skills": ["Sürü Saldırısı"]}, # Example stats
-        "vulpex": {"STR": 4, "END": 5, "INS": 6, "AGI": 7, "skills": ["Tuzak Kurma"]}, # Example stats
-        "noctis": {"STR": 3, "END": 4, "INS": 8, "AGI": 5, "skills": ["Kehanet Fısıltısı"]}, # Example stats
-        "leporim": {"STR": 4, "END": 6, "INS": 4, "AGI": 8, "skills": ["Kaçış Ustası"]} # Example stats
-        # Redefined stats for Animal Kingdom: STR, END, INS (Instinct), AGI (Agility)
+        "world_name_display": "Hayvanların Hüküm Sürdüğü Dünya",
+        "world_id": "animal_kingdom",
+        "text": "Güneşin altın ışıklarıyla yıkanan devasa bir ağacın kovuğunda gözlerini açıyorsun. Etrafın, konuşan sincapların ve şarkı söyleyen kuşların neşeli sesleriyle dolu. Aşağıda, farklı hayvan klanlarının temsilcilerinin toplandığı bir meclis alanı görünüyor. Anlaşılan o ki, 'Büyük Meşe Konseyi' başlamak üzere. Ne yaparsın?",
+        "choices": [
+            {"id": "A", "text": "Konsey alanına doğru dikkatlice in."},
+            {"id": "B", "text": "Etraftaki diğer hayvanlarla konuşarak bilgi topla."},
+            {"id": "C", "text": "Ağacın daha yükseklerine tırmanarak etrafı gözlemle."}
+        ],
+        "current_location_id": "ak_great_oak_01"
     }
 }
+
+# Helper function (optional)
+def get_starting_scenario(world_id: str, class_faction_id: str = None) -> dict:
+    """
+    Retrieves the appropriate starting scenario.
+    Falls back to generic world start if specific class/faction scenario is not found.
+    """
+    if class_faction_id and \
+       world_id in STARTING_SCENARIOS and \
+       class_faction_id in STARTING_SCENARIOS[world_id]:
+        return STARTING_SCENARIOS[world_id][class_faction_id]
+    else:
+        # Fallback to generic scenario for the world
+        return INITIAL_SCENARIOS_BY_WORLD.get(world_id, {}) # Return empty dict if world not found

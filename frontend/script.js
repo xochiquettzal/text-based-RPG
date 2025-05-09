@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const worldSelectionContainer = document.getElementById('world-selection-container');
     const raceInfoContainer = document.getElementById('race-info-container'); // Animal Kingdom
     const darkFantasyInfoContainer = document.getElementById('dark-fantasy-info-container'); // Dark Fantasy
-    const gameScreenWrapper = document.getElementById('game-screen-wrapper'); // New wrapper for game screen
-    const gameContainer = document.querySelector('#game-screen-wrapper .container'); // Game chat container inside wrapper
+    const gameScreenWrapper = document.getElementById('game-screen-wrapper'); 
+    const gameContainer = document.querySelector('#game-screen-wrapper .container'); 
 
     // Modal Elements
     const confirmationModal = document.getElementById('confirmation-modal');
@@ -28,16 +28,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const charStatsList = document.getElementById('char-stats');
 
     const API_BASE_URL = 'http://127.0.0.1:8000'; 
-    let currentPlayerState = null; 
+    const API_PREFIX = '/api/v1'; 
+    // let currentPlayerState = null; // No longer needed, state managed by backend via session_id
+    let currentSessionId = null; // Store the session ID
     let currentOnConfirm = null; 
 
     // --- Core API and UI Functions ---
 
     async function fetchStory(endpoint, payload = null) {
+        const fullEndpoint = `${API_PREFIX}${endpoint}`;
+        console.log(`Fetching: ${API_BASE_URL}${fullEndpoint}`); 
+
         try {
-            if (payload && endpoint !== '/start_game' && currentPlayerState) {
-                payload.player_state = currentPlayerState;
-            }
+            // No longer need to inject player_state here
             const options = {
                 method: payload ? 'POST' : 'GET',
                 headers: { 'Content-Type': 'application/json', },
@@ -45,19 +48,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (payload) {
                 options.body = JSON.stringify(payload);
             }
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            const response = await fetch(`${API_BASE_URL}${fullEndpoint}`, options); 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                 // Try to parse error response from API if available
+                 let errorDetail = `HTTP error! status: ${response.status}`;
+                 try {
+                     const errorJson = await response.json();
+                     errorDetail = errorJson.detail || errorDetail;
+                 } catch (parseError) { /* Ignore if response is not JSON */ }
+                 throw new Error(errorDetail);
             }
             return await response.json();
         } catch (error) {
             console.error("API isteği başarısız:", error);
             if (chatLog) {
-                 addMessageToChatLog("Hata: Oyun sunucusuna bağlanılamadı. Lütfen daha sonra tekrar deneyin.", "ai-error");
+                 addMessageToChatLog(`Hata: ${error.message}`, "ai-error");
             }
             if (choicesContainer) {
                 choicesContainer.innerHTML = ''; 
             }
+            // Maybe disable input on critical error?
+            // setInputDisabledState(true); 
             return null;
         }
     }
@@ -103,16 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Character Card Update ---
-    function updateCharacterCard(playerState) {
-        if (!playerState || !characterInfoCard) return;
+    // Now accepts playerInfo object directly from response
+    function updateCharacterCard(playerInfo) {
+        if (!playerInfo || !characterInfoCard) return;
 
-        charNameElement.textContent = playerState.name || 'Bilinmiyor';
-        charClassElement.textContent = playerState.class || 'Belirsiz';
-        charHealthElement.textContent = playerState.health !== undefined ? playerState.health : '??';
+        charNameElement.textContent = playerInfo.name || 'Bilinmiyor';
+        // Use alias 'class_name' if needed, Pydantic handles alias on response
+        charClassElement.textContent = playerInfo.class_name || 'Belirsiz'; 
+        charHealthElement.textContent = playerInfo.health !== undefined ? playerInfo.health : '??';
 
         charStatsList.innerHTML = ''; 
-        if (playerState.stats) {
-            for (const [statName, statValue] of Object.entries(playerState.stats)) {
+        if (playerInfo.stats) {
+            for (const [statName, statValue] of Object.entries(playerInfo.stats)) {
                 const li = document.createElement('li');
                 const strong = document.createElement('strong');
                 strong.textContent = `${statName.toUpperCase()}: `;
@@ -127,12 +140,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- End Character Card Update ---
 
+    // Updated to handle new response structure
     function displayStory(responseData) {
         if (!responseData) return;
-        if (responseData.player_state) {
-            currentPlayerState = responseData.player_state;
-            updateCharacterCard(currentPlayerState); 
+        
+        // Update card with info from response
+        if (responseData.player_info_for_card) {
+            updateCharacterCard(responseData.player_info_for_card); 
         }
+        
         addMessageToChatLog(responseData.text, 'ai'); 
         choicesContainer.innerHTML = ''; 
         if (responseData.choices && responseData.choices.length > 0) {
@@ -140,7 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const button = document.createElement('button');
                 button.textContent = choice.text;
                 button.dataset.choiceId = choice.id; 
-                button.addEventListener('click', () => handleChoice(choice.id, choice.text));
+                // Pass session_id implicitly via global variable
+                button.addEventListener('click', () => handleChoice(choice.id, choice.text)); 
                 choicesContainer.appendChild(button);
             });
         } else {
@@ -150,19 +167,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Updated to send session_id instead of player_state
     async function handleChoice(choiceId, choiceText) { 
+        if (!currentSessionId) {
+            addMessageToChatLog("Hata: Geçerli bir oyun oturumu bulunamadı!", "ai-error");
+            return;
+        }
         addMessageToChatLog(choiceText, 'player'); 
         choicesContainer.innerHTML = ''; 
         addTypingIndicator(); 
         setInputDisabledState(true);
         const payload = { 
+            session_id: currentSessionId, // Send session ID
             choice_id: choiceId, 
             choice_text: choiceText, 
-            player_state: currentPlayerState 
+            // player_state: currentPlayerState // Removed
         };
-        const responseData = await fetchStory('/make_choice', payload);
+        const responseData = await fetchStory('/make_choice', payload); 
         removeTypingIndicator(); 
         if (responseData) {
+            // DisplayStory now handles updating the card from responseData.player_info_for_card
             displayStory(responseData); 
         }
         setInputDisabledState(false);
@@ -176,12 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
         await handleChoice("USER_ACTION", actionText);
     }
 
-    // Modified startGame to accept worldId and optional selectedClassOrFactionId
+    // Updated to store session_id and handle new response structure
     async function startGame(selectedWorldId, selectedClassOrFactionId = null) { 
         addMessageToChatLog("Oyun başlatılıyor...", "system"); 
         setInputDisabledState(true);
-        // Ensure card is visible when game starts (updateCharacterCard will also set display:block)
-        if(characterInfoCard) characterInfoCard.style.display = 'block'; 
+        // Card is initially hidden, updateCharacterCard called by displayStory will show it
+        // if(characterInfoCard) characterInfoCard.style.display = 'block'; 
         
         const startPayload = {
             player_name: "Kaşif", 
@@ -190,15 +214,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const initialResponseData = await fetchStory('/start_game', startPayload); 
         
-        // Remove "Oyun başlatılıyor..." message
         if (chatLog && chatLog.lastChild && chatLog.lastChild.classList.contains('system-message')) {
              chatLog.removeChild(chatLog.lastChild);
         }
-        if (initialResponseData) {
-            // displayStory will handle updating the card via currentPlayerState
+        if (initialResponseData && initialResponseData.session_id) {
+            currentSessionId = initialResponseData.session_id; // Store the session ID
+            console.log("Game started with session ID:", currentSessionId); // Debug log
+            // Display initial story and update card
             displayStory(initialResponseData); 
         } else {
-             addMessageToChatLog("Oyun başlatılamadı.", "ai-error");
+             addMessageToChatLog(`Oyun başlatılamadı. ${initialResponseData?.error || ''}`, "ai-error");
+             // Maybe show world selection again?
+             // initializeApp(); // Careful with recursion
         }
         setInputDisabledState(false);
         if (playerCommandInput) playerCommandInput.focus();
