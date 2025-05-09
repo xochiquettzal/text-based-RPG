@@ -3,13 +3,16 @@
 # --- Player Character Template ---
 player_character_template = {
     "name": "Oyuncu",
-    "class": None, 
-    "world_id": None, 
-    "world_name_display": None, 
+    "class": None,
+    "world_id": None,
+    "world_name_display": None,
     "stats": {
-        # Generic defaults, will be overwritten by class/faction selection
-        "STR": 5, "END": 5, "WILL": 5, "ARC": 5, 
-        "AGI": 5, "INS": 5, "CUN": 5, "CHA": 5, 
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10,
     },
     "inventory": [],
     "skills": [],
@@ -22,18 +25,15 @@ player_character_template = {
 # Keys MUST match the race/faction IDs used elsewhere (HTML data attributes, scenarios)
 CLASS_BASE_STATS = {
     "dark_fantasy": {
-        "ashen_legion": {"STR": 8, "END": 7, "WILL": 6, "ARC": 2, "skills": ["Ölümsüz Saldırı"]},
-        "shadow_syndicate": {"STR": 4, "END": 5, "WILL": 5, "ARC": 7, "skills": ["Gizli Hançer"]}, # Assuming ARC relates to cunning/forbidden knowledge
-        "primordial_cult": {"STR": 5, "END": 6, "WILL": 8, "ARC": 4, "skills": ["Kaos Büyüsü"]} # Assuming WILL relates to resisting madness/channeling power
+        "ashen_legion": {"strength": 14, "constitution": 15, "dexterity": 8, "intelligence": 7, "wisdom": 9, "charisma": 6, "skills": ["Ölümsüz Saldırı"]},
+        "shadow_syndicate": {"strength": 8, "dexterity": 14, "constitution": 9, "intelligence": 13, "wisdom": 10, "charisma": 12, "skills": ["Gizli Hançer"]},
+        "primordial_cult": {"strength": 11, "constitution": 12, "dexterity": 9, "intelligence": 8, "wisdom": 14, "charisma": 7, "skills": ["Kaos Büyüsü"]}
     },
     "animal_kingdom": {
-        "vargar": {"STR": 7, "END": 6, "INS": 5, "AGI": 6, "skills": ["Sürü Saldırısı"]}, 
-        "vulpex": {"STR": 4, "END": 5, "INS": 6, "AGI": 7, "skills": ["Tuzak Kurma"]}, 
-        "noctis": {"STR": 3, "END": 4, "INS": 8, "AGI": 5, "skills": ["Kehanet Fısıltısı"]}, 
-        "leporim": {"STR": 4, "END": 6, "INS": 4, "AGI": 8, "skills": ["Kaçış Ustası"]} 
-        # Redefined stats for Animal Kingdom: STR, END, INS (Instinct), AGI (Agility)
-        # Note: The template includes all possible stats; irrelevant ones will just keep default value if not overwritten.
-        # Alternatively, the template could be minimal and stats added dynamically.
+        "vargar": {"strength": 14, "dexterity": 12, "constitution": 13, "intelligence": 8, "wisdom": 11, "charisma": 10, "skills": ["Sürü Saldırısı"]},
+        "vulpex": {"strength": 7, "dexterity": 14, "constitution": 9, "intelligence": 15, "wisdom": 10, "charisma": 11, "skills": ["Tuzak Kurma"]},
+        "noctis": {"strength": 6, "dexterity": 10, "constitution": 8, "intelligence": 14, "wisdom": 15, "charisma": 9, "skills": ["Kehanet Fısıltısı"]},
+        "leporim": {"strength": 8, "dexterity": 12, "constitution": 10, "intelligence": 10, "wisdom": 9, "charisma": 13, "skills": ["Kaçış Ustası"]}
     }
 }
 

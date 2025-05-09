@@ -713,3 +713,162 @@ footer {
 #modal-cancel-button:hover {
     background-color: #70757a;
 }
+
+/* Dice Roll Overlay and Animation Styles */
+#dice-roll-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Darker overlay */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; /* Ensure it's on top */
+    opacity: 0; /* Start hidden, fade in */
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#dice-roll-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+#dice-roll-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* --- New Modern Dice Animation Styles --- */
+#animated-die {
+    width: 120px; 
+    height: 120px;
+    border-radius: 15px; 
+    background-color: #2c2c34; 
+    border: 3px solid #4f4f6a; 
+    box-shadow: 0 0 15px rgba(79, 79, 106, 0.5), inset 0 0 10px rgba(30,30,40,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden; 
+    color: #e0e0ff; 
+    font-family: 'Arial', sans-serif; 
+    margin-bottom: 20px; /* Default margin when text is hidden */
+    transition: margin-bottom 0.4s ease-in-out; /* Smooth transition for margin */
+}
+
+#dice-roll-overlay.text-visible #animated-die {
+    margin-bottom: 10px; /* Reduced margin when text is visible, causing upward shift */
+}
+
+
+#die-number-display {
+    font-size: 50px;
+    font-weight: bold;
+    text-shadow: 0 0 5px #a0a0ff, 0 0 10px #a0a0ff; /* Glow effect */
+    opacity: 0; /* Initially hidden */
+    transform: scale(0.5);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out; /* For reveal */
+}
+
+/* Animation States */
+#animated-die.rolling-anticipation {
+    animation: modern-roll-anticipation 0.5s ease-out forwards;
+}
+
+#animated-die.rolling-cycle #die-number-display {
+    opacity: 1; /* Make numbers visible during cycle */
+    transform: scale(1);
+    animation: modern-roll-cycle 0.1s linear infinite; /* Fast cycle */
+}
+
+#animated-die.rolling-reveal #die-number-display {
+    opacity: 1;
+    transform: scale(1);
+    animation: modern-roll-reveal 0.4s ease-out forwards;
+    color: #e0e0ff; 
+    text-shadow: 0 0 8px #c0c0ff, 0 0 15px #c0c0ff; 
+}
+
+/* Add a class to keep the number shown after reveal, on the stylized die */
+#animated-die.number-revealed #die-number-display {
+    opacity: 1;
+    transform: scale(1); /* Keep it at final scale */
+    color: #e0e0ff; 
+    text-shadow: 0 0 8px #c0c0ff, 0 0 15px #c0c0ff; 
+}
+
+
+/* REMOVED .result-shown-on-blank styles as we are not switching to a blank PNG */
+
+@keyframes modern-roll-anticipation {
+    0% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 5px rgba(79, 79, 106, 0.2); }
+    100% { transform: scale(1); opacity: 1; box-shadow: 0 0 20px rgba(100, 100, 160, 0.7), inset 0 0 10px rgba(30,30,40,0.7); }
+}
+
+@keyframes modern-roll-cycle { /* Simple fast number change */
+    0%   { content: "1"; } /* This won't work directly on span, JS will handle this */
+    10%  { content: "12"; }
+    20%  { content: "8"; }
+    30%  { content: "20"; }
+    40%  { content: "5"; }
+    50%  { content: "17"; }
+    60%  { content: "3"; }
+    70%  { content: "11"; }
+    80%  { content: "19"; }
+    90%  { content: "6"; }
+    100% { content: "14"; }
+}
+
+@keyframes modern-roll-reveal {
+    0% { transform: scale(1.5); opacity: 0; }
+    70% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+/* --- End New Modern Dice Animation Styles --- */
+
+#dice-result-text {
+    margin-top: 25px;
+    padding: 15px 20px;
+    background-color: rgba(40, 40, 40, 0.95); 
+    color: #e8eaed; 
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.05em; /* Slightly larger */
+    line-height: 1.7;
+    border: 1px solid #5f6368;
+    min-width: 280px;
+    max-width: 90%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    opacity: 0; 
+    visibility: hidden; /* Use visibility to maintain space and prevent layout shift */
+    transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s; /* Delay visibility change */
+}
+
+#dice-result-text.visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease-in-out, visibility 0s linear 0s;
+}
+
+#dice-result-text .outcome-text { /* Class for the "Outcome: SUCCESSFUL" part */
+    font-weight: bold;
+    display: block; /* Make it take its own line */
+    margin-top: 8px; /* Space above outcome */
+    font-size: 1.2em; /* Larger outcome text */
+}
+
+#dice-result-text .outcome-KRİTİK_BAŞARI { color: #66bb6a; } /* Green for critical success */
+#dice-result-text .outcome-BAŞARILI { color: #81c784; } /* Lighter Green for success */
+#dice-result-text .outcome-BAŞARISIZ { color: #ef5350; } /* Red for failure */
+#dice-result-text .outcome-KRİTİK_BAŞARISIZ { color: #e53935; } /* Darker Red for critical failure */
+
+#dice-result-text .roll-details {
+    font-size: 0.9em;
+    color: #bdc1c6; /* Lighter color for details */
+    margin-top: 5px;
+}

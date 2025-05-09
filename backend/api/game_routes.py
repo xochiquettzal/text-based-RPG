@@ -56,8 +56,8 @@ async def make_choice_route(payload: MakeChoicePayload, db: Session = Depends(ge
              status_code = 400 if "AI servisi" in next_state_data.get("error", "") or "Geçersiz oturum" in next_state_data.get("error", "") else 500
              raise HTTPException(status_code=status_code, detail=next_state_data.get("error", "Failed to process action"))
 
-        # Ensure the response matches the MakeChoiceResponse model
-        return MakeChoiceResponse(**next_state_data)
+        # next_state_data is already a MakeChoiceResponse model instance from the service
+        return next_state_data
 
     except HTTPException as e:
         raise e 

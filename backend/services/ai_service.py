@@ -2,6 +2,7 @@
 import os
 import httpx # httpx is an async-capable HTTP client, good for FastAPI
 import json
+import re # Added for parsing skill checks from AI response
 from pathlib import Path # Import Path
 from dotenv import load_dotenv
 # Import world lore from story_data (adjust path based on new structure)
@@ -59,7 +60,9 @@ async def get_ai_response(prompt_text: str, player_context: dict = None) -> dict
         "Eğer oyuncu serbest metinle özel bir eylem deniyorsa (örneğin 'Oyuncu şu özel eylemi yapmayı deniyor: ...' gibi bir ifadeyle belirtilmişse), "
         "bu eylemin başarılı olup olmayacağını mevcut durum, karakterin mantıksal yetenekleri ve oyun dünyasının gerçekçiliği çerçevesinde değerlendir. Her özel eylem otomatik olarak başarılı olmamalıdır. "
         "Anlatımının sonunda, oyuncuya yeni durumda yapabileceği 2 veya 3 yeni seçenek sun. "
-        "Seçenekleri 'A) Seçenek metni', 'B) Başka bir seçenek metni' gibi, her birini ayrı bir satırda ve net bir şekilde belirt.\n\n"
+        "Seçenekleri 'A) Seçenek metni', 'B) Başka bir seçenek metni' gibi, her birini ayrı bir satırda ve net bir şekilde belirt.\n"
+        "ARA SIRA, seçeneklerden biri bir YETENEK KONTROLÜ olabilir. Bunu 'Seçenek metni (YETENEK ZORLUK_DERECESİ)' formatında belirt. Örneğin: 'C) Kapıyı kırmaya çalış (Güç DC15)'. Kullanılabilecek yetenekler: strength, dexterity, constitution, intelligence, wisdom, charisma.\n"
+        "Eğer sana bir yetenek kontrolünün sonucu (BAŞARILI, BAŞARISIZ, KRİTİK BAŞARI, KRİTİK BAŞARISIZ) verilirse, hikayeyi bu sonuca göre devam ettir.\n\n"
         f"Genel Dünya Bilgisi ({world_name}): {lore_summary}\n\n" # Inject world lore here
     )
 
@@ -76,14 +79,17 @@ async def get_ai_response(prompt_text: str, player_context: dict = None) -> dict
             context_str += f"- Can: {player_context['health']}\n"
         if player_context.get("current_scenario_text"): # Text player saw before making the choice/action
              context_str += f"- Önceki Durum Metni: {player_context['current_scenario_text']}\n"
+        if player_context.get("skill_check_outcome"): # If there was a skill check
+            context_str += f"- Yetenek Kontrolü Sonucu: {player_context['skill_check_outcome']}\n"
         # last_choice_text is now part of the main prompt_text coming in
-        # if player_context.get("last_choice_text"): 
-        #      context_str += f"- Son Seçimi/Eylemi: {player_context['last_choice_text']}\n"
     else:
         context_str = "Oyuncu durumu hakkında bilgi yok.\n"
 
     # prompt_text already contains the player's specific action/choice description from the caller
-    full_prompt = f"{base_prompt}{context_str}\nOyuncunun Son Eylemi/Seçimi: {prompt_text}\n\nAnlatımın ve yeni seçeneklerin:"
+    # If there was a skill check outcome, prompt_text might be more generic like "Continue the story"
+    # or it could be the original choice text that led to the skill check.
+    # The game_service will decide what prompt_text should be in this case.
+    full_prompt = f"{base_prompt}{context_str}\nOyuncunun Son Eylemi/Seçimi (veya Yetenek Kontrolü İsteği): {prompt_text}\n\nAnlatımın ve yeni seçeneklerin:"
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -167,8 +173,35 @@ async def get_ai_response(prompt_text: str, player_context: dict = None) -> dict
                             extracted_text = extracted_text.removeprefix("**").removesuffix("**").strip()
                             extracted_text = extracted_text.removeprefix("*").removesuffix("*").strip()
 
-                            if extracted_text: 
-                                parsed_choices_list.append({"id": chr(65 + i), "text": extracted_text})
+                            if extracted_text:
+                                # Try to parse skill check from the extracted_text
+                                # Format: "Action text (STAT DC##)" e.g., "Try to lift the rock (Strength DC15)"
+                                # Turkish stat names: Güç, Çeviklik, Dayanıklılık, Zeka, Bilgelik, Karizma
+                                # English stat names for mapping: strength, dexterity, constitution, intelligence, wisdom, charisma
+                                # Regex updated to allow an optional period at the end: \.?$
+                                print(f"Attempting to parse skill check from: '{extracted_text}'") # DEBUG
+                                skill_check_match = re.search(r"\((strength|dexterity|constitution|intelligence|wisdom|charisma|güç|çeviklik|dayanıklılık|zeka|bilgelik|karizma)\s+DC(\d+)\)\.?$", extracted_text, re.IGNORECASE)
+                                choice_item = {"id": chr(65 + i), "text": extracted_text}
+                                if skill_check_match:
+                                    print(f"Skill check PARSED for choice '{extracted_text}'") # DEBUG
+                                    stat_name_raw = skill_check_match.group(1).lower()
+                                    dc_value = int(skill_check_match.group(2))
+                                    
+                                    # Map Turkish stat names to English if necessary for consistency
+                                    stat_map = {
+                                        "güç": "strength", "çeviklik": "dexterity", "dayanıklılık": "constitution",
+                                        "zeka": "intelligence", "bilgelik": "wisdom", "karizma": "charisma"
+                                    }
+                                    stat_name_english = stat_map.get(stat_name_raw, stat_name_raw) # Default to raw if already English
+
+                                    choice_item["skill_check_stat"] = stat_name_english
+                                    choice_item["skill_check_dc"] = dc_value
+                                    # Clean the skill check part from the display text (allow optional period)
+                                    choice_item["text"] = re.sub(r"\s*\((strength|dexterity|constitution|intelligence|wisdom|charisma|güç|çeviklik|dayanıklılık|zeka|bilgelik|karizma)\s+DC\d+\)\.?$", "", extracted_text, flags=re.IGNORECASE).strip()
+                                else: # DEBUG
+                                    print(f"NO skill check parsed for choice '{extracted_text}'") # DEBUG
+                                
+                                parsed_choices_list.append(choice_item)
                         
                         final_story_output = " ".join(story_part_lines)
                         if not final_story_output and not parsed_choices_list and ai_content: 

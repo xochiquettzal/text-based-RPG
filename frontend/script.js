@@ -27,20 +27,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const charHealthElement = document.getElementById('char-health');
     const charStatsList = document.getElementById('char-stats');
 
+    // Dice Roll Overlay Elements
+    const diceRollOverlay = document.getElementById('dice-roll-overlay');
+    const animatedDie = document.getElementById('animated-die');
+    const dieNumberDisplay = document.getElementById('die-number-display'); 
+    const diceResultText = document.getElementById('dice-result-text');
+
     const API_BASE_URL = 'http://127.0.0.1:8000'; 
     const API_PREFIX = '/api/v1'; 
-    // let currentPlayerState = null; // No longer needed, state managed by backend via session_id
-    let currentSessionId = null; // Store the session ID
+    let currentSessionId = null; 
     let currentOnConfirm = null; 
-
-    // --- Core API and UI Functions ---
+    let diceCycleInterval = null; 
 
     async function fetchStory(endpoint, payload = null) {
         const fullEndpoint = `${API_PREFIX}${endpoint}`;
         console.log(`Fetching: ${API_BASE_URL}${fullEndpoint}`); 
 
         try {
-            // No longer need to inject player_state here
             const options = {
                 method: payload ? 'POST' : 'GET',
                 headers: { 'Content-Type': 'application/json', },
@@ -50,12 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const response = await fetch(`${API_BASE_URL}${fullEndpoint}`, options); 
             if (!response.ok) {
-                 // Try to parse error response from API if available
                  let errorDetail = `HTTP error! status: ${response.status}`;
                  try {
                      const errorJson = await response.json();
                      errorDetail = errorJson.detail || errorDetail;
-                 } catch (parseError) { /* Ignore if response is not JSON */ }
+                 } catch (parseError) { /* Ignore */ }
                  throw new Error(errorDetail);
             }
             return await response.json();
@@ -67,8 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (choicesContainer) {
                 choicesContainer.innerHTML = ''; 
             }
-            // Maybe disable input on critical error?
-            // setInputDisabledState(true); 
             return null;
         }
     }
@@ -113,16 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- Character Card Update ---
-    // Now accepts playerInfo object directly from response
     function updateCharacterCard(playerInfo) {
         if (!playerInfo || !characterInfoCard) return;
-
         charNameElement.textContent = playerInfo.name || 'Bilinmiyor';
-        // Use alias 'class_name' if needed, Pydantic handles alias on response
         charClassElement.textContent = playerInfo.class_name || 'Belirsiz'; 
         charHealthElement.textContent = playerInfo.health !== undefined ? playerInfo.health : '??';
-
         charStatsList.innerHTML = ''; 
         if (playerInfo.stats) {
             for (const [statName, statValue] of Object.entries(playerInfo.stats)) {
@@ -138,26 +133,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         characterInfoCard.style.display = 'block'; 
     }
-    // --- End Character Card Update ---
 
-    // Updated to handle new response structure
     function displayStory(responseData) {
         if (!responseData) return;
-        
-        // Update card with info from response
         if (responseData.player_info_for_card) {
             updateCharacterCard(responseData.player_info_for_card); 
         }
-        
         addMessageToChatLog(responseData.text, 'ai'); 
         choicesContainer.innerHTML = ''; 
         if (responseData.choices && responseData.choices.length > 0) {
             responseData.choices.forEach(choice => {
                 const button = document.createElement('button');
-                button.textContent = choice.text;
-                button.dataset.choiceId = choice.id; 
-                // Pass session_id implicitly via global variable
-                button.addEventListener('click', () => handleChoice(choice.id, choice.text)); 
+                let buttonText = choice.text;
+                if (choice.skill_check_stat && choice.skill_check_dc !== undefined) {
+                    const displayStat = choice.skill_check_stat.charAt(0).toUpperCase() + choice.skill_check_stat.slice(1);
+                    buttonText += ` (${displayStat} DC${choice.skill_check_dc})`;
+                }
+                button.textContent = buttonText;
+                button.dataset.choiceId = choice.id;
+                button.addEventListener('click', () => handleChoice(choice)); 
                 choicesContainer.appendChild(button);
             });
         } else {
@@ -167,45 +161,135 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Updated to send session_id instead of player_state
-    async function handleChoice(choiceId, choiceText) { 
+    function showDiceRollOutcome(resultDetails) {
+        if (!diceRollOverlay || !animatedDie || !dieNumberDisplay || !diceResultText || !resultDetails) return;
+
+        clearInterval(diceCycleInterval); 
+
+        if (dieNumberDisplay) dieNumberDisplay.textContent = resultDetails.roll;
+        if (animatedDie) {
+            animatedDie.classList.remove('rolling-anticipation', 'rolling-cycle');
+            animatedDie.classList.add('rolling-reveal'); 
+        }
+        
+        setTimeout(() => {
+            if (animatedDie) {
+                animatedDie.classList.remove('rolling-reveal');
+                animatedDie.classList.add('number-revealed'); 
+            }
+            if(diceResultText) diceResultText.classList.add('visible');
+            if(diceRollOverlay) diceRollOverlay.classList.add('text-visible'); // For smooth die shift
+        }, 400); // Match CSS reveal animation duration 
+
+        let outcomeHTML = `<strong>Yetenek Kontrolü: ${resultDetails.stat_checked.charAt(0).toUpperCase() + resultDetails.stat_checked.slice(1)}</strong><br>`;
+        outcomeHTML += `<span class="roll-details">Atılan Zar: ${resultDetails.roll} (Doğal)<br>`;
+        outcomeHTML += `Bonus: ${resultDetails.modifier >= 0 ? '+' : ''}${resultDetails.modifier}<br>`;
+        outcomeHTML += `Toplam: ${resultDetails.total_roll} vs DC: ${resultDetails.dc}</span><br>`;
+        outcomeHTML += `<span class="outcome-text outcome-${resultDetails.outcome.replace(' ', '_')}">${resultDetails.outcome}</span>`;
+        
+        diceResultText.innerHTML = outcomeHTML;
+    }
+
+    async function handleChoice(choice) { 
         if (!currentSessionId) {
             addMessageToChatLog("Hata: Geçerli bir oyun oturumu bulunamadı!", "ai-error");
             return;
         }
-        addMessageToChatLog(choiceText, 'player'); 
-        choicesContainer.innerHTML = ''; 
-        addTypingIndicator(); 
-        setInputDisabledState(true);
-        const payload = { 
-            session_id: currentSessionId, // Send session ID
-            choice_id: choiceId, 
-            choice_text: choiceText, 
-            // player_state: currentPlayerState // Removed
-        };
-        const responseData = await fetchStory('/make_choice', payload); 
-        removeTypingIndicator(); 
-        if (responseData) {
-            // DisplayStory now handles updating the card from responseData.player_info_for_card
-            displayStory(responseData); 
+
+        const isSkillCheck = choice.skill_check_stat && choice.skill_check_dc !== undefined;
+        const choiceTextForLog = choice.text; 
+
+        addMessageToChatLog(choiceTextForLog, 'player');
+        choicesContainer.innerHTML = '';
+        setInputDisabledState(true); 
+
+        if (isSkillCheck) {
+            if (diceRollOverlay && animatedDie && dieNumberDisplay && diceResultText) {
+                diceResultText.classList.remove('visible'); 
+                diceRollOverlay.classList.remove('text-visible'); // Reset for die shift
+                dieNumberDisplay.textContent = ''; 
+                animatedDie.className = 'die'; // Reset to base class
+                animatedDie.classList.add('rolling-anticipation');
+                diceRollOverlay.classList.remove('hidden');
+                
+                addMessageToChatLog(`${choice.text} için zar atılıyor...`, 'system');
+
+                setTimeout(() => {
+                    if (animatedDie && dieNumberDisplay) {
+                        animatedDie.classList.remove('rolling-anticipation');
+                        animatedDie.classList.add('rolling-cycle');
+                        diceCycleInterval = setInterval(() => {
+                            if(dieNumberDisplay) dieNumberDisplay.textContent = Math.floor(Math.random() * 20) + 1;
+                        }, 70); 
+                    }
+                }, 500); 
+            }
+            setTimeout(addTypingIndicator, 700); 
+        } else {
+            addTypingIndicator();
         }
-        setInputDisabledState(false);
-        playerCommandInput.focus(); 
+        
+        const payload = { 
+            session_id: currentSessionId,
+            choice_id: choice.id, 
+            choice_text: choice.text, 
+        };
+
+        const fetchDelay = isSkillCheck ? 1500 : 0; 
+        
+        setTimeout(async () => {
+            const responseData = await fetchStory('/make_choice', payload); 
+            removeTypingIndicator(); 
+            clearInterval(diceCycleInterval); 
+
+            if (isSkillCheck && animatedDie) {
+                animatedDie.classList.remove('rolling-anticipation', 'rolling-cycle');
+            }
+
+            if (responseData) {
+                if (responseData.skill_check_result) {
+                    showDiceRollOutcome(responseData.skill_check_result);
+                    if (diceRollOverlay) {
+                        const proceedAfterOverlay = () => {
+                            diceRollOverlay.classList.add('hidden');
+                            diceRollOverlay.classList.remove('text-visible'); // Reset for die shift
+                            if(animatedDie) animatedDie.className = 'die'; 
+                            if(dieNumberDisplay) dieNumberDisplay.textContent = '';
+                            if(diceResultText) diceResultText.classList.remove('visible');
+                            displayStory(responseData); 
+                            setInputDisabledState(false);
+                            if (playerCommandInput) playerCommandInput.focus();
+                        };
+                        diceRollOverlay.addEventListener('click', proceedAfterOverlay, { once: true });
+                    }
+                } else {
+                    displayStory(responseData);
+                    setInputDisabledState(false);
+                    if (playerCommandInput) playerCommandInput.focus();
+                }
+            } else { 
+                setInputDisabledState(false);
+                if (isSkillCheck && diceRollOverlay) { 
+                    diceRollOverlay.classList.add('hidden');
+                    diceRollOverlay.classList.remove('text-visible');
+                    if(animatedDie) animatedDie.className = 'die';
+                    if(dieNumberDisplay) dieNumberDisplay.textContent = '';
+                    if(diceResultText) diceResultText.classList.remove('visible');
+                }
+            }
+        }, fetchDelay);
     }
 
     async function handleCustomAction() {
         const actionText = playerCommandInput.value.trim();
         if (!actionText) return;
         playerCommandInput.value = ''; 
-        await handleChoice("USER_ACTION", actionText);
+        await handleChoice({ id: "USER_ACTION", text: actionText });
     }
 
-    // Updated to store session_id and handle new response structure
     async function startGame(selectedWorldId, selectedClassOrFactionId = null) { 
         addMessageToChatLog("Oyun başlatılıyor...", "system"); 
         setInputDisabledState(true);
-        // Card is initially hidden, updateCharacterCard called by displayStory will show it
-        // if(characterInfoCard) characterInfoCard.style.display = 'block'; 
         
         const startPayload = {
             player_name: "Kaşif", 
@@ -218,20 +302,16 @@ document.addEventListener('DOMContentLoaded', () => {
              chatLog.removeChild(chatLog.lastChild);
         }
         if (initialResponseData && initialResponseData.session_id) {
-            currentSessionId = initialResponseData.session_id; // Store the session ID
-            console.log("Game started with session ID:", currentSessionId); // Debug log
-            // Display initial story and update card
+            currentSessionId = initialResponseData.session_id; 
+            console.log("Game started with session ID:", currentSessionId); 
             displayStory(initialResponseData); 
         } else {
              addMessageToChatLog(`Oyun başlatılamadı. ${initialResponseData?.error || ''}`, "ai-error");
-             // Maybe show world selection again?
-             // initializeApp(); // Careful with recursion
         }
         setInputDisabledState(false);
         if (playerCommandInput) playerCommandInput.focus();
     }
 
-    // --- Modal Logic ---
     function showModal(message, onConfirmCallback) {
         if (!confirmationModal || !modalMessage) return;
         modalMessage.textContent = message;
@@ -244,15 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal.style.display = 'none';
         currentOnConfirm = null; 
     }
-    // --- End Modal Logic ---
 
-    // --- Listener Setup for Info Cards --- 
     function addRaceCardListeners(worldId, worldName) {
         if (!raceInfoContainer) return;
         raceInfoContainer.querySelectorAll('.race-info-card').forEach(raceCard => {
             const newCard = raceCard.cloneNode(true); 
             raceCard.parentNode.replaceChild(newCard, raceCard);
-
             newCard.addEventListener('click', () => {
                 const raceId = newCard.dataset.raceId;
                 const raceName = newCard.querySelector('h2').textContent; 
@@ -275,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
         darkFantasyInfoContainer.querySelectorAll('.faction-info-card').forEach(factionCard => {
             const newCard = factionCard.cloneNode(true); 
             factionCard.parentNode.replaceChild(newCard, factionCard);
-
             newCard.addEventListener('click', () => {
                 const factionId = newCard.dataset.factionId;
                 const factionName = newCard.querySelector('h2').textContent; 
@@ -292,18 +368,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-    // --- End Listener Setup ---
 
-    // --- Initialization ---
     function initializeApp() {
-        // Ensure all main screen containers are hidden initially, show world selection
         if (gameScreenWrapper) gameScreenWrapper.style.display = 'none'; 
         if (raceInfoContainer) raceInfoContainer.style.display = 'none';
         if (darkFantasyInfoContainer) darkFantasyInfoContainer.style.display = 'none'; 
         if (characterInfoCard) characterInfoCard.style.display = 'none'; 
         if (worldSelectionContainer) worldSelectionContainer.style.display = 'block'; 
 
-        // Add listeners to world cards
         const worldCardsContainer = document.getElementById('world-cards-container'); 
         if (worldCardsContainer) {
             const worldCards = worldCardsContainer.querySelectorAll('.world-card'); 
@@ -311,9 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.addEventListener('click', () => { 
                     const worldId = card.dataset.worldId;
                     const worldName = card.dataset.worldName; 
-
                     if (worldSelectionContainer) worldSelectionContainer.style.display = 'none'; 
-
                     if (worldId === 'animal_kingdom') {
                         if (raceInfoContainer) raceInfoContainer.style.display = 'flex'; 
                         addRaceCardListeners(worldId, worldName); 
@@ -325,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Add listeners for modal buttons
         if (modalConfirmButton) {
             modalConfirmButton.addEventListener('click', () => {
                 if (currentOnConfirm) {
@@ -338,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modalCancelButton.addEventListener('click', hideModal);
         }
 
-        // Add listeners for custom text input
         if (sendCommandButton) {
             sendCommandButton.addEventListener('click', handleCustomAction);
         }
@@ -352,6 +420,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Start the application initialization
     initializeApp(); 
 });
